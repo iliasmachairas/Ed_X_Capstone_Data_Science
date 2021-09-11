@@ -5,6 +5,7 @@ import dash_html_components as html
 import dash_core_components as dcc
 from dash.dependencies import Input, Output
 import plotly.express as px
+import numpy as np
 
 # Read the airline spacex_df into pandas dataframe
 spacex_df = pd.read_csv("spacex_launch_dash.csv")
@@ -43,7 +44,20 @@ app.layout = html.Div(children=[html.H1('SpaceX Launch Records Dashboard',
                                 html.P("Payload range (Kg):"),
                                 # TASK 3: Add a slider to select payload range
                                 #dcc.RangeSlider(id='payload-slider',...)
-
+                                dcc.RangeSlider(
+                                    id='payload-slider',
+                                    min=0,
+                                    max=10000,
+                                    value = [min_payload, max_payload],
+                                    step=1000,
+                                    marks={0:{'label':'0'},
+                                            2500:{'label':'2500'},
+                                            5000:{'label':'5000'},
+                                            7500:{'label':'7500'},
+                                            10000:{'label':'10000'}
+                                            }
+                                ),                          
+                                html.Br(),
                                 # TASK 4: Add a scatter chart to show the correlation between payload and launch success
                                 html.Div(dcc.Graph(id='success-payload-scatter-chart')),
                                 ])
@@ -83,7 +97,26 @@ def updating_pie(value1):
 
 # TASK 4:
 # Add a callback function for `site-dropdown` and `payload-slider` as inputs, `success-payload-scatter-chart` as output
+@app.callback(
+    Output(component_id='success-payload-scatter-chart', component_property='figure'),
+    [Input(component_id='site-dropdown', component_property='value'),
+    Input(component_id="payload-slider", component_property="value")])
 
+def updating_scatterplot(site, value):
+    mass_1 = [v for v in value]
+    mask = (spacex_df['Payload Mass (kg)']>=mass_1[0]) & (spacex_df['Payload Mass (kg)']<=mass_1[1])
+    data_crop = spacex_df.loc[mask]
+    if site=='All':
+        fig = px.scatter(data_crop, x='Payload Mass (kg)', y='class', color="Booster Version Category")
+        #plt.xlabel('Payload Mass (kg)')
+        #plt.ylabel('Class')
+        return fig
+    else:
+        data_crop_site = data_crop.loc[data_crop['Launch Site'] == site]
+        fig = px.scatter(data_crop, x='Payload Mass (kg)', y='class', color="Booster Version Category")
+        #plt.xlabel('Payload Mass (kg)')
+        #plt.ylabel('Class')
+        return fig
 
 # Run the app
 if __name__ == '__main__':
